@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple RAG Chat</title>
+</head>
+<body>
+    <h1>RAG Chat</h1>
+
+    <textarea id="question" rows="4" cols="50"></textarea><br>
+    <button onclick="ask()">Ask</button>
+
+    <h3>Answer:</h3>
+    <div id="answer"></div>
+
+<script>
+async function ask() {
+    const question = document.getElementById("question").value;
+
+    const response = await fetch("/ask", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({question})
+    });
+
+    const data = await response.json();
+    document.getElementById("answer").innerText = data.answer;
+}
+</script>
+
+</body>
+</html>
