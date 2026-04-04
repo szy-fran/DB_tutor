@@ -1,18 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Simple RAG Chat</title>
+    <title>SQL Tutor</title>
 </head>
 <body>
-    <h1>RAG Chat</h1>
+    <h1>SQL Tutor</h1>
 
-    <textarea id="question" rows="4" cols="50"></textarea><br>
-    <button onclick="ask()">Ask</button>
+    <label for="level">Level:</label>
+    <select id="level">
+        <option value="beginner">Beginner</option>
+        <option value="intermediate" selected>Intermediate</option>
+        <option value="advanced">Advanced</option>
+    </select>
+    <button onclick="startSession()">Start</button>
+
+    <br><br>
+
+    <textarea id="question" rows="4" cols="50" disabled></textarea><br>
+    <button id="ask-btn" onclick="ask()" disabled>Ask</button>
 
     <h3>Answer:</h3>
     <div id="answer"></div>
 
 <script>
+async function startSession() {
+    const level = document.getElementById("level").value;
+
+    await fetch("/start", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({level})
+    });
+
+    document.getElementById("question").disabled = false;
+    document.getElementById("ask-btn").disabled = false;
+}
+
 async function ask() {
     const question = document.getElementById("question").value;
 
