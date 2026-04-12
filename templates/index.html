@@ -1,54 +1,485 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SQL Tutor</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SQL Tutor</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #181c27;
+      --border:   #252a38;
+      --accent:   #4f8ef7;
+      --accent2:  #7c5cfc;
+      --success:  #34d399;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --user-bg:  #1e2235;
+      --bot-bg:   #13161f;
+      --task-bg:  #141a2e;
+      --task-border: #2a3a6e;
+      --radius:   10px;
+      --mono:     'IBM Plex Mono', monospace;
+      --sans:     'IBM Plex Sans', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); font-size: 15px;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    }
+
+    header {
+      width: 100%; max-width: 860px; padding: 24px 24px 0;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 14px; font-weight: 600; color: #fff; flex-shrink: 0;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    header h1 span { color: var(--accent); }
+    .mode-badge {
+      margin-left: auto; font-size: 11px; font-family: var(--mono);
+      padding: 4px 10px; border-radius: 20px;
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+    }
+    .mode-badge.socratic { border-color: var(--accent2); color: var(--accent2); }
+    .mode-badge.direct   { border-color: var(--success);  color: var(--success); }
+
+    main { width: 100%; max-width: 860px; padding: 20px 24px 120px; flex: 1; }
+
+    #intake-screen {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 36px; margin-top: 32px;
+    }
+    #intake-screen h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    #intake-screen p.sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block; font-size: 12px; font-family: var(--mono);
+      color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .options { display: flex; gap: 10px; flex-wrap: wrap; }
+    .option-btn {
+      padding: 9px 18px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); font-size: 14px; cursor: pointer; transition: all 0.15s;
+    }
+    .option-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .option-btn.selected { background: rgba(79,142,247,0.12); border-color: var(--accent); color: var(--accent); }
+    .option-btn.mode-socratic.selected { background: rgba(124,92,252,0.12); border-color: var(--accent2); color: var(--accent2); }
+    .option-btn.mode-direct.selected   { background: rgba(52,211,153,0.12);  border-color: var(--success);  color: var(--success); }
+    .mode-desc { font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.5; min-height: 36px; }
+    #start-btn {
+      margin-top: 8px; padding: 11px 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 6px;
+      font-family: var(--sans); font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+    }
+    #start-btn:hover { opacity: 0.88; }
+    #start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #chat-screen { display: none; }
+    #chat-log { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; }
+
+    .task-card {
+      background: var(--task-bg);
+      border: 1px solid var(--task-border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .task-card-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .task-pill {
+      font-size: 10px; font-family: var(--mono); font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(79,142,247,0.15); color: var(--accent);
+      border: 1px solid rgba(79,142,247,0.3);
+      padding: 3px 9px; border-radius: 20px;
+    }
+    .task-card-header span { font-size: 13px; color: var(--muted); }
+    .task-body { line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .task-body code {
+      font-family: var(--mono); font-size: 13px;
+      background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;
+    }
+
+    .input-locked-notice {
+      text-align: center; padding: 14px 0 2px;
+      font-size: 13px; color: var(--muted); font-style: italic;
+    }
+
+    .generating-task {
+      display: flex; align-items: center; gap: 10px;
+      padding: 18px 22px;
+      background: var(--task-bg); border: 1px solid var(--task-border);
+      border-radius: var(--radius);
+      font-size: 14px; color: var(--muted);
+    }
+    .spin {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .msg { display: flex; flex-direction: column; gap: 4px; }
+    .msg-label {
+      font-size: 11px; font-family: var(--mono);
+      letter-spacing: 0.05em; color: var(--muted); text-transform: uppercase;
+    }
+    .msg.user .msg-label { color: var(--accent); }
+    .msg.bot  .msg-label { color: var(--accent2); }
+    .msg-bubble {
+      padding: 14px 16px; border-radius: var(--radius);
+      line-height: 1.65; white-space: pre-wrap; word-break: break-word;
+      border: 1px solid var(--border);
+    }
+    .msg.user .msg-bubble { background: var(--user-bg); }
+    .msg.bot  .msg-bubble { background: var(--bot-bg); }
+    .msg-bubble code {
+      font-family: var(--mono); font-size: 13px;
+      background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;
+    }
+    .msg-bubble pre {
+      background: #0a0c14; border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; overflow-x: auto; margin: 8px 0;
+    }
+    .msg-bubble pre code { background: none; padding: 0; font-size: 13px; }
+
+    /* Sources */
+    .sources { margin-top: 8px; }
+    .sources-toggle {
+      font-size: 12px; font-family: var(--mono); color: var(--muted);
+      cursor: pointer; background: none; border: none; text-decoration: underline; padding: 0;
+    }
+    .sources-toggle:hover { color: var(--text); }
+    .sources-list {
+      display: none; margin-top: 6px; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; font-size: 12px; color: var(--muted); line-height: 1.5;
+    }
+    .sources-list p { margin-bottom: 6px; }
+    .sources-list p:last-child { margin-bottom: 0; }
+
+    .typing .msg-bubble { display: flex; gap: 5px; align-items: center; padding: 16px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+    #input-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, var(--bg) 70%, transparent);
+      padding: 16px 0 20px;
+    }
+    .input-inner {
+      max-width: 860px; margin: 0 auto; padding: 0 24px;
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    #question-input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: var(--sans); font-size: 14px; padding: 12px 14px;
+      resize: none; outline: none; min-height: 46px; max-height: 140px;
+      line-height: 1.5; transition: border-color 0.15s;
+    }
+    #question-input:focus { border-color: var(--accent); }
+    #question-input::placeholder { color: var(--muted); }
+    #question-input:disabled { opacity: 0.4; cursor: not-allowed; }
+    #send-btn {
+      width: 46px; height: 46px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: var(--radius); color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: opacity 0.15s;
+    }
+    #send-btn:hover { opacity: 0.85; }
+    #send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    #send-btn svg { width: 18px; height: 18px; }
+
+    #reset-btn {
+      position: fixed; top: 20px; right: 24px;
+      font-size: 12px; font-family: var(--mono); color: var(--muted);
+      background: none; border: none; cursor: pointer; text-decoration: underline;
+    }
+    #reset-btn:hover { color: var(--text); }
+
+    .empty-state { text-align: center; padding: 60px 0; color: var(--muted); }
+    .empty-state .big { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0 auto; }
+  </style>
 </head>
 <body>
-    <h1>SQL Tutor</h1>
 
-    <label for="level">Level:</label>
-    <select id="level">
-        <option value="beginner">Beginner</option>
-        <option value="intermediate" selected>Intermediate</option>
-        <option value="advanced">Advanced</option>
-    </select>
-    <button onclick="startSession()">Start</button>
+<header>
+  <div class="logo">SQL</div>
+  <h1>Database <span>Tutor</span></h1>
+  <span class="mode-badge" id="header-badge">—</span>
+</header>
 
-    <br><br>
+<main>
+  <div id="intake-screen">
+    <h2>Welcome to the SQL Tutor</h2>
+    <p class="sub">Before we start, please tell us about your experience level and how you'd like to learn today.</p>
 
-    <textarea id="question" rows="4" cols="50" disabled></textarea><br>
-    <button id="ask-btn" onclick="ask()" disabled>Ask</button>
+    <div class="field">
+      <label>Your SQL Experience Level</label>
+      <div class="options" id="level-options">
+        <button class="option-btn" onclick="selectOption('level','beginner',this)">Beginner</button>
+        <button class="option-btn" onclick="selectOption('level','intermediate',this)">Intermediate</button>
+        <button class="option-btn" onclick="selectOption('level','advanced',this)">Advanced</button>
+      </div>
+    </div>
 
-    <h3>Answer:</h3>
-    <div id="answer"></div>
+    <div class="field">
+      <label>Learning Mode</label>
+      <div class="options" id="mode-options">
+        <button class="option-btn mode-socratic" onclick="selectOption('mode','socratic',this)">Guided / Socratic</button>
+        <button class="option-btn mode-direct"   onclick="selectOption('mode','direct',this)">Task-Based / Direct</button>
+      </div>
+      <p class="mode-desc" id="mode-desc">Select a mode to see what it means.</p>
+    </div>
+
+    <button id="start-btn" onclick="startSession()" disabled>Start Session →</button>
+  </div>
+
+  <div id="chat-screen">
+    <div id="chat-log">
+      <div class="empty-state">
+        <div class="big">💬</div>
+        <p>Ask me anything about SQL and relational databases.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="input-bar" style="display:none">
+  <div class="input-inner">
+    <textarea id="question-input" placeholder="Ask a question about SQL…" rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button id="send-btn" onclick="sendMessage()" title="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<button id="reset-btn" style="display:none" onclick="resetSession()">← New Session</button>
 
 <script>
-async function startSession() {
-    const level = document.getElementById("level").value;
+  const selections = { level: null, mode: null };
+  const modeDescriptions = {
+    socratic: "The tutor guides you with questions and hints rather than giving direct answers. Best for building deep understanding step by step.",
+    direct:   "You receive a realistic exam-style SQL exercise first. Once it's displayed, you can ask the tutor specific questions about it and get direct answers — but only about that task."
+  };
 
-    await fetch("/start", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({level})
+  let currentMode = null;
+  let taskReady = false; // direct mode: becomes true once the task card is shown
+
+  function selectOption(field, value, btn) {
+    selections[field] = value;
+    document.getElementById(field + '-options').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    if (field === 'mode') document.getElementById('mode-desc').textContent = modeDescriptions[value];
+    document.getElementById('start-btn').disabled = !(selections.level && selections.mode);
+  }
+
+  async function startSession() {
+    const btn = document.getElementById('start-btn');
+    btn.disabled = true; btn.textContent = 'Starting…';
+
+    await fetch('/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: selections.level, mode: selections.mode })
     });
 
-    document.getElementById("question").disabled = false;
-    document.getElementById("ask-btn").disabled = false;
-}
+    currentMode = selections.mode;
 
-async function ask() {
-    const question = document.getElementById("question").value;
+    document.getElementById('intake-screen').style.display = 'none';
+    document.getElementById('chat-screen').style.display = 'block';
+    document.getElementById('input-bar').style.display = 'block';
+    document.getElementById('reset-btn').style.display = 'block';
 
-    const response = await fetch("/ask", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({question})
+    const badge = document.getElementById('header-badge');
+    badge.textContent = currentMode === 'socratic' ? '🧠 Guided' : '📋 Task-Based';
+    badge.className = 'mode-badge ' + currentMode;
+
+    const emptyState = document.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+
+    if (currentMode === 'direct') {
+      lockInput("Generating your exercise…");
+      await loadTask();
+    } else {
+      document.getElementById('question-input').focus();
+    }
+  }
+
+  function lockInput(placeholderText) {
+    const input = document.getElementById('question-input');
+    const btn = document.getElementById('send-btn');
+    input.disabled = true;
+    input.placeholder = placeholderText || "Waiting…";
+    btn.disabled = true;
+  }
+
+  function unlockInput() {
+    const input = document.getElementById('question-input');
+    const btn = document.getElementById('send-btn');
+    input.disabled = false;
+    input.placeholder = "Ask a question about this exercise…";
+    btn.disabled = false;
+    input.focus();
+  }
+
+  async function loadTask() {
+    const log = document.getElementById('chat-log');
+    const spinner = document.createElement('div');
+    spinner.className = 'generating-task';
+    spinner.id = 'task-spinner';
+    spinner.innerHTML = '<div class="spin"></div><span>Generating your exercise, please wait…</span>';
+    log.appendChild(spinner);
+    spinner.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+    const res = await fetch('/get_task', { method: 'POST' });
+    const data = await res.json();
+
+    // Remove spinner
+    document.getElementById('task-spinner').remove();
+
+    // Show task card
+    const card = document.createElement('div');
+    card.className = 'task-card';
+    card.innerHTML = `
+      <div class="task-card-header">
+        <span class="task-pill">Exercise</span>
+        <span>Read the task below, then ask questions if you need clarification.</span>
+      </div>
+      <div class="task-body">${formatText(data.task)}</div>
+    `;
+    log.appendChild(card);
+    card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+    const notice = document.createElement('p');
+    notice.className = 'input-locked-notice';
+    notice.id = 'locked-notice';
+    notice.textContent = '';
+    log.appendChild(notice);
+
+    taskReady = true;
+    unlockInput();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  }
+
+  async function sendMessage() {
+    if (currentMode === 'direct' && !taskReady) return;
+
+    const input = document.getElementById('question-input');
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = ''; input.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+
+    appendMessage('user', question, null);
+    const typingEl = appendTyping();
+
+    const response = await fetch('/ask', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
     });
-
     const data = await response.json();
-    document.getElementById("answer").innerText = data.answer;
-}
-</script>
+    typingEl.remove();
+    appendMessage('bot', data.answer, data.sources);
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
 
+  function appendMessage(role, text, sources) {
+    const log = document.getElementById('chat-log');
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : 'SQL Tutor';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = formatText(text);
+
+    msg.appendChild(label);
+    msg.appendChild(bubble);
+
+    if (role === 'bot' && sources && sources.length > 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'sources';
+      const toggle = document.createElement('button');
+      toggle.className = 'sources-toggle';
+      toggle.textContent = 'View ' + sources.length + ' knowledge base source(s)';
+      toggle.onclick = () => {
+        const list = wrap.querySelector('.sources-list');
+        list.style.display = list.style.display === 'block' ? 'none' : 'block';
+      };
+      const list = document.createElement('div');
+      list.className = 'sources-list';
+      sources.forEach((src, i) => {
+        const p = document.createElement('p');
+        p.textContent = '[' + (i+1) + '] ' + src;
+        list.appendChild(p);
+      });
+      wrap.appendChild(toggle); wrap.appendChild(list);
+      msg.appendChild(wrap);
+    }
+
+    log.appendChild(msg);
+    msg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  function appendTyping() {
+    const log = document.getElementById('chat-log');
+    const msg = document.createElement('div');
+    msg.className = 'msg bot typing';
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = 'SQL Tutor';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    msg.appendChild(label); msg.appendChild(bubble);
+    log.appendChild(msg);
+    msg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    return msg;
+  }
+
+  function formatText(text) {
+    let t = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\n/g, '<br>');
+    return t;
+  }
+
+  async function resetSession() {
+    await fetch('/reset', { method: 'POST' });
+    location.reload();
+  }
+</script>
 </body>
 </html>
